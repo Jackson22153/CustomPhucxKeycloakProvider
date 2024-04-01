@@ -14,11 +14,13 @@ import java.util.stream.Stream;
 import org.keycloak.component.ComponentModel;
 import org.keycloak.credential.CredentialInput;
 import org.keycloak.credential.CredentialInputValidator;
+import org.keycloak.credential.hash.PasswordHashProvider;
 import org.keycloak.models.GroupModel;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserModel;
 import org.keycloak.models.credential.PasswordCredentialModel;
+import org.keycloak.models.utils.KeycloakModelUtils;
 import org.keycloak.storage.StorageId;
 import org.keycloak.storage.UserStorageProvider;
 import org.keycloak.storage.user.ImportedUserValidation;
@@ -30,6 +32,8 @@ import org.slf4j.LoggerFactory;
 
 import com.phucx.DbUtil;
 import com.phucx.model.Users;
+import com.phucx.passwordHashing.BcryptPasswordHashingProvider;
+
 
 public class CustomUserStorageProvider implements 
     UserStorageProvider, 
@@ -208,19 +212,22 @@ public class CustomUserStorageProvider implements
 
     @Override
     public UserModel addUser(RealmModel realm, String username) {
-        
-        log.info("[I142] addUser: realm={}, username={}", realm.getName(), username);
-
         return null;
+        // log.info("[I142] addUser: realm={}, username={}", realm.getName(), username);
         // try (Connection connection = DbUtil.getConnection(this.model)){
+        //     // PasswordHashProvider passwordHashProvider = ksession.getProvider(BcryptPasswordHashingProvider.class);
+        //     // String hashedPassword = passwordHashProvider.encode(CustomUserStorageProviderConstants.UNSET_PASSWORD, 10);
         //     Users user = new Users();
         //     user.setUserID(KeycloakModelUtils.generateId());
         //     user.setUsername(username);
         //     user.setPassword(CustomUserStorageProviderConstants.UNSET_PASSWORD);
         //     synchronized(user){
-        //         user.saveUser(connection);
+        //         user = user.saveUser(connection);
         //     }
-        //     return new CustomUserAdapterFeDeratedStorage(ksession, realm, model, user);
+        //     if(user!=null){
+        //         return new CustomUserAdapterFeDeratedStorage(ksession, realm, model, user);
+        //     }
+        //     return null;
         // } catch (SQLException e) {
         //     throw new RuntimeException(e.getMessage());
         // }
@@ -229,8 +236,8 @@ public class CustomUserStorageProvider implements
 
     @Override
     public boolean removeUser(RealmModel realm, UserModel user) {
-        log.info("[I143] removeUser: realm={}, username={}, userID={}", realm.getName(), user.getUsername(), user.getId());
         return false;
+        // log.info("[I143] removeUser: realm={}, username={}, userID={}", realm.getName(), user.getUsername(), user.getId());
         // try (Connection connection = DbUtil.getConnection(this.model)){
         //     Users removeUser = Users.getUserByUsername(user.getUsername(), connection);
         //     if(removeUser!=null){

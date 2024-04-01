@@ -53,7 +53,7 @@ public class Users {
         return roles;
     }
 
-    public boolean saveUser(Connection c) throws SQLException{
+    public Users saveUser(Connection c) throws SQLException{
         PreparedStatement st = c.prepareStatement(
             "insert into Users(userID, username, password, email) values(?,?,?,?)");
         st.setString(1, this.userID);
@@ -61,8 +61,8 @@ public class Users {
         st.setString(3, this.password);
         st.setString(4, this.email);
         int rs = st.executeUpdate();
-        if(rs>0) return true;
-        return false;
+        if(rs>0) return this;
+        return null;
     }
 
     public boolean deleteUser(Connection c) throws SQLException{
