@@ -126,7 +126,7 @@ public class CustomRoleAdapter implements RoleModel {
 
     @Override
     public void setDescription(String description) {
-        
+        throw new ReadOnlyException("Role is read only");
     }
 
     @Override
@@ -137,6 +137,12 @@ public class CustomRoleAdapter implements RoleModel {
     @Override
     public void setSingleAttribute(String name, String value) {
         throw new ReadOnlyException("Role is read only");
+    }
+
+    @Override
+    public String getFirstAttribute(String name) {
+        // TODO Auto-generated method stub
+        return RoleModel.super.getFirstAttribute(name);
     }
     
 }

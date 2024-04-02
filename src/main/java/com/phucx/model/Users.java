@@ -189,6 +189,39 @@ public class Users {
         return null;
     }
 
+    public static boolean validateUserRoleMapping(String userID, String roleID, Connection c) throws SQLException{
+        PreparedStatement ps = c.prepareStatement("SELECT * FROM Users where userID=?");
+        ps.setString(1, userID);
+        ps.executeQuery();
+        ps.execute();
+        ResultSet rs = ps.getResultSet();
+        
+        List<Users> users = convertUser(rs);
+        return false;
+    }
+
+    public static String assignUserRole(String username, String roleName, Connection c) throws SQLException{
+        PreparedStatement ps = c.prepareStatement("exec assignUserRole ?, ?");
+        ps.setString(1, username);
+        ps.setString(2, roleName);
+        
+        ResultSet rs = ps.executeQuery();
+        rs.next();
+        String result = rs.getString(1);
+        return result;
+    }
+
+    public static String deleteUserRole(String username, String roleName, Connection c) throws SQLException{
+        PreparedStatement ps = c.prepareStatement("exec deleteUserRole ?, ?");
+        ps.setString(1, username);
+        ps.setString(2, roleName);
+        
+        ResultSet rs = ps.executeQuery();
+        rs.next();
+        String result = rs.getString(1);
+        return result;
+    }
+
 
 
     // getter vs setter

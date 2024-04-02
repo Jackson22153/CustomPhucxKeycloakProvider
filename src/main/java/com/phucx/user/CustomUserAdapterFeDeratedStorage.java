@@ -6,7 +6,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.keycloak.common.util.MultivaluedHashMap;
@@ -79,17 +78,16 @@ public class CustomUserAdapterFeDeratedStorage extends AbstractUserAdapterFedera
 
     @Override
     protected Set<RoleModel> getRoleMappingsInternal() {
-        return this.getRoleMappingStream().collect(Collectors.toSet());
+        return Collections.emptySet();
     }
 
     @Override
     public Stream<RoleModel> getRoleMappingsStream() {
-        // return this.getRoleMappingStream();
-        return super.getRoleMappingsStream();
+        return Stream.concat(this.getRoleMappingStream(), this.realm.getDefaultRole().getCompositesStream());
     }
 
     private Stream<RoleModel> getRoleMappingStream(){
-        logger.info("getUserMapping");
+        // logger.info("getUserMapping");
         try (Connection connection = DbUtil.getConnection(storageProviderModel)){
             return this.user.getRoles(connection).stream()
                 .map(role -> new CustomRoleAdapter(role, realm, session, storageProviderModel).saveRole());
@@ -102,7 +100,6 @@ public class CustomUserAdapterFeDeratedStorage extends AbstractUserAdapterFedera
     public void setSingleAttribute(String name, String value) {
         // set enabled and email verified
         super.setSingleAttribute(name, value);
-        // throw new ReadOnlyException("Role is read only");
     }
 
     @Override
@@ -131,6 +128,44 @@ public class CustomUserAdapterFeDeratedStorage extends AbstractUserAdapterFedera
         } catch (SQLException e) {
             throw new RuntimeException(e.getMessage());
         }
+    }
+
+    @Override
+    public void grantRole(RoleModel role) {
+        // super.grantRole(role);
+        logger.info("grantRole({})", role.getName());
+        try (Connection c = DbUtil.getConnection(this.storageProviderModel)){
+            String check =Users.assignUserRole(this.user.getUsername(), role.getName(), c);
+            if(check!=null){
+                logger.info("role: {} has been assigned to {}", role.getName(), this.user.getUsername());
+            }else{
+                logger.info("role: {} can not be assigned to {}", role.getName(), this.user.getUsername());
+            }
+        } catch (SQLException e) {
+            super.grantRole(role);
+            throw new RuntimeException(e.getMessage());
+        }
+    }
+
+    @Override
+    public void deleteRoleMapping(RoleModel role) {
+        logger.info("deleteRoleMapping({})", role.getName());
+        try (Connection c = DbUtil.getConnection(this.storageProviderModel)){
+            String check =Users.deleteUserRole(this.user.getUsername(), role.getName(), c);
+            if(check!=null){
+                logger.info("role: {} has been unassigned from {}", role.getName(), this.user.getUsername());
+            }else{
+                logger.info("role: {} can not be unassigned from {}", role.getName(), this.user.getUsername());
+            }
+        } catch (SQLException e) {
+            super.deleteRoleMapping(role);
+            throw new RuntimeException(e.getMessage());
+        }
+    }
+
+    @Override
+    protected boolean appendDefaultRolesToRoleMappings() {
+        return super.appendDefaultRolesToRoleMappings();
     }
     
 }
