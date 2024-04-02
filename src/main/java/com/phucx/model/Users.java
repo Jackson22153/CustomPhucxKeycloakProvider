@@ -72,6 +72,29 @@ public class Users {
         return !st.execute();
     }
 
+    public boolean updateEmailAttribute(String value, Connection c) throws SQLException{
+        PreparedStatement st = c.prepareStatement("update Users set email = ? where userID=?");
+        st.setString(1, value);
+        st.setString(2, this.userID);
+        int rs = st.executeUpdate();
+        if(rs>0){
+            return true;
+        }
+        return false;
+    }
+
+    public boolean updatePassword(String value, Connection c) throws SQLException{
+        PreparedStatement st = c.prepareStatement("update Users set password = ? where userID=?");
+        st.setString(1, value);
+        st.setString(2, this.userID);
+        int rs = st.executeUpdate();
+        if(rs>0){
+            return true;
+        }
+        return false;
+    }
+
+
 
     public List<Roles> getRoles(Connection c) throws SQLException{
         PreparedStatement st = c.prepareStatement(

@@ -15,7 +15,6 @@ import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.RoleModel;
 import org.keycloak.models.UserModel;
-import org.keycloak.storage.ReadOnlyException;
 import org.keycloak.storage.adapter.AbstractUserAdapterFederatedStorage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,6 +64,7 @@ public class CustomUserAdapterFeDeratedStorage extends AbstractUserAdapterFedera
 
     @Override
     public void setEmail(String email) {
+        logger.info("Email: {}", email);
         super.setEmail(email);
         this.user.setEmail(email);
     }
@@ -100,13 +100,37 @@ public class CustomUserAdapterFeDeratedStorage extends AbstractUserAdapterFedera
 
     @Override
     public void setSingleAttribute(String name, String value) {
-        throw new ReadOnlyException("Role is read only");
+        // set enabled and email verified
+        super.setSingleAttribute(name, value);
+        // throw new ReadOnlyException("Role is read only");
     }
 
     @Override
     public String getFirstAttribute(String name) {
         List<String> list =  getAttributes().getOrDefault(name, Collections.emptyList());
         return !list.isEmpty()? list.get(0): null; 
+    }
+
+    @Override
+    public void setAttribute(String name, List<String> values) {
+        // set others user attribute like email,....
+        // super.setAttribute(name, values);
+        logger.info("setAttribute({}, {})", name, values.get(0));
+        try (Connection c = DbUtil.getConnection(storageProviderModel)){
+            boolean check = false;
+            switch (name) {
+                case UserModel.EMAIL:
+                    check = this.user.updateEmailAttribute(values.get(0), c);
+                    break;
+                // other attributes
+                default:
+                    break;
+            }
+            if(check) logger.info("update successfully");
+            else logger.info("update failed");
+        } catch (SQLException e) {
+            throw new RuntimeException(e.getMessage());
+        }
     }
     
 }

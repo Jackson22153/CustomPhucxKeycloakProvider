@@ -13,11 +13,13 @@ import java.util.stream.Stream;
 
 import org.keycloak.component.ComponentModel;
 import org.keycloak.credential.CredentialInput;
+import org.keycloak.credential.CredentialInputUpdater;
 import org.keycloak.credential.CredentialInputValidator;
 import org.keycloak.credential.hash.PasswordHashProvider;
 import org.keycloak.models.GroupModel;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
+import org.keycloak.models.UserCredentialModel;
 import org.keycloak.models.UserModel;
 import org.keycloak.models.credential.PasswordCredentialModel;
 import org.keycloak.models.utils.KeycloakModelUtils;
@@ -32,13 +34,13 @@ import org.slf4j.LoggerFactory;
 
 import com.phucx.DbUtil;
 import com.phucx.model.Users;
-import com.phucx.passwordHashing.BcryptPasswordHashingProvider;
 
 
 public class CustomUserStorageProvider implements 
     UserStorageProvider, 
     UserLookupProvider, 
     CredentialInputValidator,
+    CredentialInputUpdater,
     UserRegistrationProvider,
     UserQueryProvider,
     ImportedUserValidation{
@@ -46,6 +48,9 @@ public class CustomUserStorageProvider implements
     private static final Logger log = LoggerFactory.getLogger(CustomUserStorageProvider.class);
     private KeycloakSession ksession;
     private ComponentModel model;
+
+    public static final int DEFAULT_ITERATIONS = 10;
+    public static final String providerId = "bcrypt";
 
     private Map<String, CustomUserAdapterFeDeratedStorage> instanceUsers = new HashMap<>();
 
@@ -109,7 +114,7 @@ public class CustomUserStorageProvider implements
 
     @Override
     public boolean supportsCredentialType(String credentialType) {
-        log.info("[I57] supportsCredentialType({})",credentialType);
+        log.info("[I57] supportsCredentialType({}) result:{}",credentialType, PasswordCredentialModel.TYPE.endsWith(credentialType));
         return PasswordCredentialModel.TYPE.endsWith(credentialType);
     }
 
@@ -125,16 +130,22 @@ public class CustomUserStorageProvider implements
     public boolean isValid(RealmModel realm, UserModel user, CredentialInput credentialInput) {
         log.info("[I57] isValid(realm={},user={},credentialInput.type={})",realm.getName(), user.getUsername(), credentialInput.getType());
         if( !this.supportsCredentialType(credentialInput.getType())) {
+            log.info("[I157] not passwordtype");
             return false;
         }
         StorageId sid = new StorageId(user.getId());
         String username = sid.getExternalId();
- 
+        log.info("username: {}", username);
         try ( Connection c = DbUtil.getConnection(this.model)) {
             Users u = Users.getUserByUsername(username, c);
             if(u!=null){
+                String userInputPassword = credentialInput.getChallengeResponse();
                 String pwd = u.getPassword();
-                return pwd.equals(credentialInput.getChallengeResponse());
+                PasswordHashProvider passwordHashProvider =ksession.getProvider(PasswordHashProvider.class, providerId);
+            
+                PasswordCredentialModel hashedPassword = PasswordCredentialModel
+                    .createFromValues(providerId, new byte[0], DEFAULT_ITERATIONS, pwd);
+                return passwordHashProvider.verify(userInputPassword, hashedPassword);
             }
             return false;
         }
@@ -142,7 +153,6 @@ public class CustomUserStorageProvider implements
             throw new RuntimeException("Database error:" + ex.getMessage(),ex);
         }
     }
-
     // UserQueryProvider implementation
     
     @Override
@@ -212,44 +222,43 @@ public class CustomUserStorageProvider implements
 
     @Override
     public UserModel addUser(RealmModel realm, String username) {
-        return null;
-        // log.info("[I142] addUser: realm={}, username={}", realm.getName(), username);
-        // try (Connection connection = DbUtil.getConnection(this.model)){
-        //     // PasswordHashProvider passwordHashProvider = ksession.getProvider(BcryptPasswordHashingProvider.class);
-        //     // String hashedPassword = passwordHashProvider.encode(CustomUserStorageProviderConstants.UNSET_PASSWORD, 10);
-        //     Users user = new Users();
-        //     user.setUserID(KeycloakModelUtils.generateId());
-        //     user.setUsername(username);
-        //     user.setPassword(CustomUserStorageProviderConstants.UNSET_PASSWORD);
-        //     synchronized(user){
-        //         user = user.saveUser(connection);
-        //     }
-        //     if(user!=null){
-        //         return new CustomUserAdapterFeDeratedStorage(ksession, realm, model, user);
-        //     }
-        //     return null;
-        // } catch (SQLException e) {
-        //     throw new RuntimeException(e.getMessage());
-        // }
+        log.info("[I142] addUser: realm={}, username={}", realm.getName(), username);
+        try (Connection connection = DbUtil.getConnection(this.model)){
+            PasswordHashProvider passwordHashProvider = ksession.getProvider(PasswordHashProvider.class, providerId);
+            String hashedPassword = passwordHashProvider.encode(
+                CustomUserStorageProviderConstants.UNSET_PASSWORD, DEFAULT_ITERATIONS);
+            Users user = new Users();
+            user.setUserID(KeycloakModelUtils.generateId());
+            user.setUsername(username);
+            user.setPassword(hashedPassword);
+            synchronized(user){
+                user = user.saveUser(connection);
+            }
+            if(user!=null){
+                return new CustomUserAdapterFeDeratedStorage(ksession, realm, model, user);
+            }
+            return null;
+        } catch (SQLException e) {
+            throw new RuntimeException(e.getMessage());
+        }
     }
 
 
     @Override
     public boolean removeUser(RealmModel realm, UserModel user) {
-        return false;
-        // log.info("[I143] removeUser: realm={}, username={}, userID={}", realm.getName(), user.getUsername(), user.getId());
-        // try (Connection connection = DbUtil.getConnection(this.model)){
-        //     Users removeUser = Users.getUserByUsername(user.getUsername(), connection);
-        //     if(removeUser!=null){
-        //         boolean check = false;
-        //         synchronized(removeUser){
-        //             check = removeUser.deleteUser(connection);
-        //         }
-        //         return check;
-        //     }else return false;
-        // } catch (SQLException e) {
-        //     throw new RuntimeException(e.getMessage());
-        // }
+        log.info("[I143] removeUser({}, {})", realm.getName(), user.getUsername());
+        try (Connection connection = DbUtil.getConnection(this.model)){
+            Users removeUser = Users.getUserByUsername(user.getUsername(), connection);
+            if(removeUser!=null){
+                boolean check = false;
+                synchronized(removeUser){
+                    check = removeUser.deleteUser(connection);
+                }
+                return check;
+            }else return false;
+        } catch (SQLException e) {
+            throw new RuntimeException(e.getMessage());
+        }
     }
 
     @Override
@@ -265,5 +274,32 @@ public class CustomUserStorageProvider implements
             throw new RuntimeException("Database error:" + ex.getMessage(),ex);
         }
         return null;
+    }
+
+    @Override
+    public void disableCredentialType(RealmModel realm, UserModel user, String credentialType) {
+
+    }
+
+    @Override
+    public Stream<String> getDisableableCredentialTypesStream(RealmModel realm, UserModel user) {
+        return Stream.empty();
+    }
+
+    @Override
+    public boolean updateCredential(RealmModel realm, UserModel user, CredentialInput credential) {
+        log.info("updateCredential({}, {}, {})", realm.getName(), user.getUsername(), credential.getChallengeResponse());
+        if (!supportsCredentialType(credential.getType()) || !(credential instanceof UserCredentialModel)) 
+            return false;
+        try (Connection c = DbUtil.getConnection(this.model)){
+            Users fetchedUser = Users.getUserByUsername(user.getUsername(), c);
+            PasswordHashProvider passwordHashProvider = this.ksession.getProvider(PasswordHashProvider.class, providerId);
+            String hashedPassword = passwordHashProvider.encode(credential.getChallengeResponse(), DEFAULT_ITERATIONS);
+            log.info("hashedPassword: {}", hashedPassword);
+            boolean check = fetchedUser.updatePassword(hashedPassword, c);
+            return check;
+        } catch (SQLException e) {
+            throw new RuntimeException(e.getMessage());
+        }
     }
 }
