@@ -23,7 +23,7 @@ import com.phucx.model.Users;
 import com.phucx.role.CustomRoleAdapter;
 
 public class CustomUserAdapterFeDeratedStorage extends AbstractUserAdapterFederatedStorage{
-
+    private final String USEREX_ID = "userexID";
 
     private Logger logger = LoggerFactory.getLogger(CustomUserAdapterFeDeratedStorage.class);
     private Users user;
@@ -70,9 +70,11 @@ public class CustomUserAdapterFeDeratedStorage extends AbstractUserAdapterFedera
 
     @Override
     public Map<String, List<String>> getAttributes() {
+        // add more custome attribues for a user
         MultivaluedHashMap<String, String> attributes = new MultivaluedHashMap<>();
         attributes.add(UserModel.USERNAME, getUsername());
         attributes.add(UserModel.EMAIL, getEmail());
+        attributes.add(USEREX_ID, getUserID());
         return attributes;
     }
 
