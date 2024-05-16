@@ -33,7 +33,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.phucx.DbUtil;
-import com.phucx.model.Users;
+import com.phucx.model.User;
 
 
 public class CustomUserStorageProvider implements 
@@ -78,7 +78,7 @@ public class CustomUserStorageProvider implements
         CustomUserAdapterFeDeratedStorage cachedUser = instanceUsers.get(username);
         if(cachedUser == null){
             try ( Connection c = DbUtil.getConnection(this.model)) {
-                Users user = Users.getUserByUsername(username, c);
+                User user = User.getUserByUsername(username, c);
                 if(user!=null){
                     cachedUser = new CustomUserAdapterFeDeratedStorage(ksession, realm, model, user);
                     instanceUsers.put(username, cachedUser);
@@ -99,7 +99,7 @@ public class CustomUserStorageProvider implements
         CustomUserAdapterFeDeratedStorage cachedUser = instanceUsers.get(email);
         if(cachedUser == null){
             try ( Connection c = DbUtil.getConnection(this.model)) {
-                Users user = Users.getUserByEmail(email, c);
+                User user = User.getUserByEmail(email, c);
                 if(user!=null){
                     cachedUser = new CustomUserAdapterFeDeratedStorage(ksession, realm, model, user);
                     instanceUsers.put(email, cachedUser);
@@ -137,7 +137,7 @@ public class CustomUserStorageProvider implements
         String username = sid.getExternalId();
         log.info("username: {}", username);
         try ( Connection c = DbUtil.getConnection(this.model)) {
-            Users u = Users.getUserByUsername(username, c);
+            User u = User.getUserByUsername(username, c);
             if(u!=null){
                 String userInputPassword = credentialInput.getChallengeResponse();
                 String pwd = u.getPassword();
@@ -159,7 +159,7 @@ public class CustomUserStorageProvider implements
     public int getUsersCount(RealmModel realm) {
         log.info("[I93] getUsersCount: realm={}", realm.getName() );
         try ( Connection c = DbUtil.getConnection(this.model)) {
-            return Users.getCountUsers(c);
+            return User.getCountUsers(c);
         }
         catch(SQLException ex) {
             throw new RuntimeException("Database error:" + ex.getMessage(),ex);
@@ -171,7 +171,7 @@ public class CustomUserStorageProvider implements
         log.info("[I113] getUsers: realm={}", realm.getName());
         
         try ( Connection c = DbUtil.getConnection(this.model)) {
-            List<Users> users = Users.getListUsers(maxResults, firstResult, c);
+            List<User> users = User.getListUsers(maxResults, firstResult, c);
             List<UserModel> obUser = users.stream().map(user -> 
                 new CustomUserAdapterFeDeratedStorage(ksession, realm, model, user))
                 .collect(Collectors.toList());
@@ -187,7 +187,7 @@ public class CustomUserStorageProvider implements
     public Stream<UserModel> searchForUserStream(RealmModel realm, String search, Integer firstResult, Integer maxResults) {
         log.info("[I139] searchForUser: realm={}", realm.getName());
         try (Connection c = DbUtil.getConnection(this.model)) {
-            List<Users> users = Users.getListUsersLike(search, maxResults, firstResult, c);
+            List<User> users = User.getListUsersLike(search, maxResults, firstResult, c);
             List<UserModel> obUser = users.stream().map(user -> 
                 new CustomUserAdapterFeDeratedStorage(ksession, realm, model, user))
                 .collect(Collectors.toList());
@@ -210,7 +210,7 @@ public class CustomUserStorageProvider implements
     public Stream<UserModel> searchForUserByUserAttributeStream(RealmModel realm, String attrName, String attrValue) {
         log.info("[I141] searchForUser: realm={}", realm.getName());
         try (Connection c = DbUtil.getConnection(this.model)){
-            List<Users> users = Users.getListUsersAtrtLike(attrName, attrValue, null);
+            List<User> users = User.getListUsersAtrtLike(attrName, attrValue, null);
             List<UserModel> obUser = users.stream().map(user -> 
                 new CustomUserAdapterFeDeratedStorage(ksession, realm, model, user))
                 .collect(Collectors.toList());
@@ -227,7 +227,7 @@ public class CustomUserStorageProvider implements
             PasswordHashProvider passwordHashProvider = ksession.getProvider(PasswordHashProvider.class, providerId);
             String hashedPassword = passwordHashProvider.encode(
                 CustomUserStorageProviderConstants.UNSET_PASSWORD, DEFAULT_ITERATIONS);
-            Users user = new Users();
+            User user = new User();
             user.setUserID(KeycloakModelUtils.generateId());
             user.setUsername(username);
             user.setPassword(hashedPassword);
@@ -248,7 +248,7 @@ public class CustomUserStorageProvider implements
     public boolean removeUser(RealmModel realm, UserModel user) {
         log.info("[I143] removeUser({}, {})", realm.getName(), user.getUsername());
         try (Connection connection = DbUtil.getConnection(this.model)){
-            Users removeUser = Users.getUserByUsername(user.getUsername(), connection);
+            User removeUser = User.getUserByUsername(user.getUsername(), connection);
             if(removeUser!=null){
                 boolean check = false;
                 synchronized(removeUser){
@@ -265,7 +265,7 @@ public class CustomUserStorageProvider implements
     public UserModel validate(RealmModel realm, UserModel user) {
         log.info("[I144] validate: realm={}, username={}", realm.getName(), user.getUsername());
         try ( Connection c = DbUtil.getConnection(this.model)) {
-            Users fetcheduser = Users.getUserByUsername(user.getUsername(), c);
+            User fetcheduser = User.getUserByUsername(user.getUsername(), c);
             if(fetcheduser!=null){
                 return new CustomUserAdapterFeDeratedStorage(ksession, realm, model, fetcheduser);
             }
@@ -292,7 +292,7 @@ public class CustomUserStorageProvider implements
         if (!supportsCredentialType(credential.getType()) || !(credential instanceof UserCredentialModel)) 
             return false;
         try (Connection c = DbUtil.getConnection(this.model)){
-            Users fetchedUser = Users.getUserByUsername(user.getUsername(), c);
+            User fetchedUser = User.getUserByUsername(user.getUsername(), c);
             PasswordHashProvider passwordHashProvider = this.ksession.getProvider(PasswordHashProvider.class, providerId);
             String hashedPassword = passwordHashProvider.encode(credential.getChallengeResponse(), DEFAULT_ITERATIONS);
             log.info("hashedPassword: {}", hashedPassword);

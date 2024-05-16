@@ -19,17 +19,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.phucx.DbUtil;
-import com.phucx.model.Users;
+import com.phucx.model.User;
 import com.phucx.role.CustomRoleAdapter;
 
 public class CustomUserAdapterFeDeratedStorage extends AbstractUserAdapterFederatedStorage{
-    private final String USEREX_ID = "userexID";
+    private final String USEREX_ID_ATTRIBUTE = "userexID";
+    private final String ENABLED_ATTRIBUTE="enabled";
+    private final String EMAIL_VERIFIED_ATTRIBUTE="emailVerified";
+    private final String EMAIL_VERIFIED_NAME="EMAIL_VERIFIED";
 
     private Logger logger = LoggerFactory.getLogger(CustomUserAdapterFeDeratedStorage.class);
-    private Users user;
+    private User user;
 
     public CustomUserAdapterFeDeratedStorage(KeycloakSession session, RealmModel realm,
-            ComponentModel storageProviderModel, Users user) {
+            ComponentModel storageProviderModel, User user) {
         super(session, realm, storageProviderModel);
         this.user = user;
     }
@@ -56,6 +59,25 @@ public class CustomUserAdapterFeDeratedStorage extends AbstractUserAdapterFedera
         this.user.setPassword(password);
     }
 
+    public String getEnabled(){
+        return String.valueOf(this.user.getEnabled());
+    }
+
+    public void setEnabled(String enabled){
+        Boolean enableValue = Boolean.valueOf(enabled);
+        this.user.setEnabled(enableValue);
+    }
+
+    public String getEmailVerified(){
+        return String.valueOf(this.user.getEmailVerified());
+    }
+
+    public void setEmailVerified(Boolean emailVerified){
+        Boolean emailVerifiedValue = Boolean.valueOf(emailVerified);
+        this.user.setEmailVerified(emailVerifiedValue);
+    }
+
+
     @Override
     public String getEmail() {
         return this.user.getEmail();
@@ -74,7 +96,11 @@ public class CustomUserAdapterFeDeratedStorage extends AbstractUserAdapterFedera
         MultivaluedHashMap<String, String> attributes = new MultivaluedHashMap<>();
         attributes.add(UserModel.USERNAME, getUsername());
         attributes.add(UserModel.EMAIL, getEmail());
-        attributes.add(USEREX_ID, getUserID());
+        attributes.add(UserModel.EMAIL_VERIFIED, getEmailVerified());
+        attributes.add(UserModel.ENABLED, getEnabled());
+        attributes.add(USEREX_ID_ATTRIBUTE, getUserID());
+
+        logger.info(attributes.toString());
         return attributes;
     }
 
@@ -100,13 +126,37 @@ public class CustomUserAdapterFeDeratedStorage extends AbstractUserAdapterFedera
 
     @Override
     public void setSingleAttribute(String name, String value) {
+        logger.info("setSingleAttribute(name={}, value={})", name, value);
         // set enabled and email verified
-        super.setSingleAttribute(name, value);
+        this.updateSingleAttribute(name, value);
+        // super.setSingleAttribute(name, value);
+    }
+
+    // update enable and email verified of User
+    private void updateSingleAttribute(String name, String value){
+        try (Connection connection = DbUtil.getConnection(storageProviderModel)){
+            if(this.ENABLED_ATTRIBUTE.equalsIgnoreCase(name)){
+                this.user.updateEnabledAttribute(value, connection);
+            }else if(this.EMAIL_VERIFIED_NAME.equalsIgnoreCase(name)){
+                this.user.updateEmailVerifiedAttribute(value, connection);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
     }
 
     @Override
     public String getFirstAttribute(String name) {
+        logger.info("getFirstAttribute(name={})", name);
+        
+        if(name.equalsIgnoreCase(this.ENABLED_ATTRIBUTE)){
+            name = this.ENABLED_ATTRIBUTE;           
+        }else if(name.equalsIgnoreCase(this.EMAIL_VERIFIED_NAME)){
+            name = this.EMAIL_VERIFIED_ATTRIBUTE;
+        }
         List<String> list =  getAttributes().getOrDefault(name, Collections.emptyList());
+        logger.info("Name: {}, value: {}", name, !list.isEmpty()? list.get(0): null);
         return !list.isEmpty()? list.get(0): null; 
     }
 
@@ -137,7 +187,7 @@ public class CustomUserAdapterFeDeratedStorage extends AbstractUserAdapterFedera
         // super.grantRole(role);
         logger.info("grantRole({})", role.getName());
         try (Connection c = DbUtil.getConnection(this.storageProviderModel)){
-            String check =Users.assignUserRole(this.user.getUsername(), role.getName(), c);
+            String check =User.assignUserRole(this.user.getUsername(), role.getName(), c);
             if(check!=null){
                 logger.info("role: {} has been assigned to {}", role.getName(), this.user.getUsername());
             }else{
@@ -153,7 +203,7 @@ public class CustomUserAdapterFeDeratedStorage extends AbstractUserAdapterFedera
     public void deleteRoleMapping(RoleModel role) {
         logger.info("deleteRoleMapping({})", role.getName());
         try (Connection c = DbUtil.getConnection(this.storageProviderModel)){
-            String check =Users.deleteUserRole(this.user.getUsername(), role.getName(), c);
+            String check =User.deleteUserRole(this.user.getUsername(), role.getName(), c);
             if(check!=null){
                 logger.info("role: {} has been unassigned from {}", role.getName(), this.user.getUsername());
             }else{

@@ -16,7 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.phucx.DbUtil;
-import com.phucx.model.Roles;
+import com.phucx.model.Role;
 
 
 public class CustomRoleProvider implements RoleStorageProvider{
@@ -39,7 +39,7 @@ public class CustomRoleProvider implements RoleStorageProvider{
     public RoleModel getClientRole(ClientModel client, String name) {
         log.info("[I161] getRealmRole: realm={}, role={}", client.getRealm().getName(), name);
         try (Connection connection = DbUtil.getConnection(this.model)){
-            Roles role = Roles.getRoleByName(name, connection);
+            Role role = Role.getRoleByName(name, connection);
             return new CustomRoleAdapter(role, client.getRealm(), ksession, model);
         } catch (SQLException e) {
             throw new RuntimeException(e.getMessage());
@@ -50,7 +50,7 @@ public class CustomRoleProvider implements RoleStorageProvider{
     public RoleModel getRealmRole(RealmModel realm, String name) {
         log.info("[I161] getRealmRole: realm={}, role={}", realm.getName(), name);
         try (Connection connection = DbUtil.getConnection(this.model)){
-            Roles role = Roles.getRoleByName(name, connection);
+            Role role = Role.getRoleByName(name, connection);
             return new CustomRoleAdapter(role, realm, ksession, model);
         } catch (SQLException e) {
             throw new RuntimeException(e.getMessage());
@@ -69,7 +69,7 @@ public class CustomRoleProvider implements RoleStorageProvider{
     public Stream<RoleModel> searchForClientRolesStream(ClientModel client, String search, Integer first, Integer max) {
         log.info("[I163] searchForClientRolesStream: realm={}, search={}", client.getRealm().getName(), search);
         try (Connection connection = DbUtil.getConnection(model)){
-            List<Roles> roles = Roles.getListRolesLike(search, max, first, connection);
+            List<Role> roles = Role.getListRolesLike(search, max, first, connection);
             return roles.stream().map(role -> 
                 new CustomRoleAdapter(role, client.getRealm(), this.ksession, this.model));
         } catch (Exception e) {
@@ -101,7 +101,7 @@ public class CustomRoleProvider implements RoleStorageProvider{
     public Stream<RoleModel> searchForRolesStream(RealmModel realm, String search, Integer first, Integer max) {
         log.info("[I163] searchForClientRolesStream: realm={}, search={}", realm.getName(), search);
         try (Connection connection = DbUtil.getConnection(model)){
-            List<Roles> roles = Roles.getListRolesLike(search, max, first, connection);
+            List<Role> roles = Role.getListRolesLike(search, max, first, connection);
             return roles.stream().map(role -> 
                 new CustomRoleAdapter(role, realm, this.ksession, this.model));
         } catch (Exception e) {

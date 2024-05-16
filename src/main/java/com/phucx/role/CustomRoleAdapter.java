@@ -12,17 +12,17 @@ import org.keycloak.models.RoleModel;
 import org.keycloak.models.utils.KeycloakModelUtils;
 import org.keycloak.storage.ReadOnlyException;
 import org.keycloak.storage.StorageId;
-import com.phucx.model.Roles;
+import com.phucx.model.Role;
 
 public class CustomRoleAdapter implements RoleModel {
     // private Logger logger = LoggerFactory.getLogger(CustomRoleAdapter.class);
-    private Roles role;
+    private Role role;
     private RealmModel realm;
     protected KeycloakSession session;
     protected ComponentModel storageProviderModel;
     protected StorageId storageId;
 
-    public CustomRoleAdapter(Roles role, RealmModel realm, KeycloakSession session, ComponentModel storageProviderModel,
+    public CustomRoleAdapter(Role role, RealmModel realm, KeycloakSession session, ComponentModel storageProviderModel,
             StorageId storageId) {
         this.role = role;
         this.realm = realm;
@@ -31,7 +31,7 @@ public class CustomRoleAdapter implements RoleModel {
         this.storageId = storageId;
     }
 
-    public CustomRoleAdapter(Roles role, RealmModel realm, KeycloakSession session, ComponentModel storageProviderModel) {
+    public CustomRoleAdapter(Role role, RealmModel realm, KeycloakSession session, ComponentModel storageProviderModel) {
         this.role = role;
         this.realm = realm;
         this.session = session;
