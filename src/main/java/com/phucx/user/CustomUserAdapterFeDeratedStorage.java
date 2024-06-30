@@ -72,7 +72,7 @@ public class CustomUserAdapterFeDeratedStorage extends AbstractUserAdapterFedera
         return String.valueOf(this.user.getEmailVerified());
     }
 
-    public void setEmailVerified(Boolean emailVerified){
+    public void setEmailVerified(String emailVerified){
         Boolean emailVerifiedValue = Boolean.valueOf(emailVerified);
         this.user.setEmailVerified(emailVerifiedValue);
     }
@@ -92,15 +92,19 @@ public class CustomUserAdapterFeDeratedStorage extends AbstractUserAdapterFedera
 
     @Override
     public Map<String, List<String>> getAttributes() {
+
+
         // add more custome attribues for a user
         MultivaluedHashMap<String, String> attributes = new MultivaluedHashMap<>();
         attributes.add(UserModel.USERNAME, getUsername());
         attributes.add(UserModel.EMAIL, getEmail());
         attributes.add(UserModel.EMAIL_VERIFIED, getEmailVerified());
         attributes.add(UserModel.ENABLED, getEnabled());
+        // attributes.add(UserModel.ENABLED, String.valueOf(true));
+        // attributes.add(UserModel.EMAIL_VERIFIED, String.valueOf(true));
         attributes.add(USEREX_ID_ATTRIBUTE, getUserID());
 
-        logger.info(attributes.toString());
+        logger.info("getAttributes: {}",attributes.toString());
         return attributes;
     }
 
@@ -127,6 +131,11 @@ public class CustomUserAdapterFeDeratedStorage extends AbstractUserAdapterFedera
     @Override
     public void setSingleAttribute(String name, String value) {
         logger.info("setSingleAttribute(name={}, value={})", name, value);
+        if(name.equalsIgnoreCase(UserModel.ENABLED)){
+            setEnabled(value);
+        }else if(name.equalsIgnoreCase(UserModel.EMAIL_VERIFIED)){
+            setEmailVerified(value);
+        }
         // set enabled and email verified
         this.updateSingleAttribute(name, value);
         // super.setSingleAttribute(name, value);
@@ -167,9 +176,11 @@ public class CustomUserAdapterFeDeratedStorage extends AbstractUserAdapterFedera
         logger.info("setAttribute({}, {})", name, values.get(0));
         try (Connection c = DbUtil.getConnection(storageProviderModel)){
             boolean check = false;
+
             switch (name) {
                 case UserModel.EMAIL:
                     check = this.user.updateEmailAttribute(values.get(0), c);
+                    if(check) setEmail(values.get(0));
                     break;
                 // other attributes
                 default:

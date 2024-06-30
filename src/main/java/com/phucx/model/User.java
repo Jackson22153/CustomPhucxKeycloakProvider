@@ -28,7 +28,7 @@ public class User {
         this.enabled=enabled;
     }
 
-
+    // extract user from result set of sql query
     private static List<User> convertUser(ResultSet rs) throws SQLException{
         List<User> users = new ArrayList<>();
         while (rs.next()) {
@@ -60,11 +60,13 @@ public class User {
 
     public User saveUser(Connection c) throws SQLException{
         PreparedStatement st = c.prepareStatement(
-            "insert into Users(userID, username, password, email) values(?,?,?,?)");
+            "insert into Users(userID, username, password, email, emailVerified, enabled) values(?,?,?,?,?,?)");
         st.setString(1, this.userID);
         st.setString(2, this.username);
         st.setString(3, this.password);
         st.setString(4, this.email);
+        st.setBoolean(5, true);
+        st.setBoolean(6, true);
         int rs = st.executeUpdate();
         if(rs>0) return this;
         return null;
@@ -214,16 +216,32 @@ public class User {
         return null;
     }
 
-    // public static boolean validateUserRoleMapping(String userID, String roleID, Connection c) throws SQLException{
-    //     PreparedStatement ps = c.prepareStatement("SELECT * FROM Users where userID=?");
-    //     ps.setString(1, userID);
-    //     ps.executeQuery();
-    //     ps.execute();
-    //     ResultSet rs = ps.getResultSet();
-        
-    //     List<Users> users = convertUser(rs);
-    //     return false;
-    // }
+    public String getEmail(Connection c) throws SQLException{
+        PreparedStatement ps = c.prepareStatement("SELECT email FROM Users Where userID=?");
+        ps.setString(1, this.userID);
+        ResultSet rs = ps.executeQuery();
+        rs.next();
+        String email = rs.getString("email");
+        return email;
+    }
+
+    public Boolean getEnabled(Connection c) throws SQLException{
+        PreparedStatement ps = c.prepareStatement("SELECT enabled FROM Users Where userID=?");
+        ps.setString(1, this.userID);
+        ResultSet rs = ps.executeQuery();
+        rs.next();
+        Boolean enabled = rs.getBoolean("enabled");
+        return enabled;
+    }
+
+    public Boolean getEmailVerified(Connection c) throws SQLException{
+        PreparedStatement ps = c.prepareStatement("SELECT emailVerified FROM Users Where userID=?");
+        ps.setString(1, this.userID);
+        ResultSet rs = ps.executeQuery();
+        rs.next();
+        Boolean emailVerified = rs.getBoolean("emailVerified");
+        return emailVerified;
+    }
 
     public static String assignUserRole(String username, String roleName, Connection c) throws SQLException{
         PreparedStatement ps = c.prepareStatement("exec assignUserRole ?, ?");

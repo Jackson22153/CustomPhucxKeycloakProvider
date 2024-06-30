@@ -113,6 +113,7 @@ public class CustomUserStorageProvider implements
     }
 
     @Override
+    // set the support credential type for authenticating
     public boolean supportsCredentialType(String credentialType) {
         log.info("[I57] supportsCredentialType({}) result:{}",credentialType, PasswordCredentialModel.TYPE.endsWith(credentialType));
         return PasswordCredentialModel.TYPE.endsWith(credentialType);
@@ -127,6 +128,7 @@ public class CustomUserStorageProvider implements
     }
 
     @Override
+    // validate user's credentials when user logs in
     public boolean isValid(RealmModel realm, UserModel user, CredentialInput credentialInput) {
         log.info("[I57] isValid(realm={},user={},credentialInput.type={})",realm.getName(), user.getUsername(), credentialInput.getType());
         if( !this.supportsCredentialType(credentialInput.getType())) {
@@ -221,12 +223,14 @@ public class CustomUserStorageProvider implements
     }
 
     @Override
+    // save user's information to database
     public UserModel addUser(RealmModel realm, String username) {
         log.info("[I142] addUser: realm={}, username={}", realm.getName(), username);
         try (Connection connection = DbUtil.getConnection(this.model)){
             PasswordHashProvider passwordHashProvider = ksession.getProvider(PasswordHashProvider.class, providerId);
             String hashedPassword = passwordHashProvider.encode(
                 CustomUserStorageProviderConstants.UNSET_PASSWORD, DEFAULT_ITERATIONS);
+            log.info("username: {}, hashedpassword: {}", username, hashedPassword);
             User user = new User();
             user.setUserID(KeycloakModelUtils.generateId());
             user.setUsername(username);
@@ -287,6 +291,7 @@ public class CustomUserStorageProvider implements
     }
 
     @Override
+    // update user's credentials and also save the registered user's input credentials for users
     public boolean updateCredential(RealmModel realm, UserModel user, CredentialInput credential) {
         log.info("updateCredential({}, {}, {})", realm.getName(), user.getUsername(), credential.getChallengeResponse());
         if (!supportsCredentialType(credential.getType()) || !(credential instanceof UserCredentialModel)) 
