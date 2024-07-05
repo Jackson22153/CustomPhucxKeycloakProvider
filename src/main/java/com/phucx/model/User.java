@@ -10,6 +10,8 @@ import java.util.List;
 
 public class User {
     private String userID;
+    private String firstName;
+    private String lastName;
     private String email;
     private String username;
     private String password;
@@ -19,8 +21,10 @@ public class User {
     public User() {
     }
 
-    public User(String userID, String email, String username, String password, Boolean emailVerified, Boolean enabled) {
+    public User(String userID, String firstName, String lastName, String email, String username, String password, Boolean emailVerified, Boolean enabled) {
         this.userID = userID;
+        this.firstName = firstName;
+        this.lastName = lastName;
         this.email = email;
         this.username = username;
         this.password = password;
@@ -34,12 +38,14 @@ public class User {
         while (rs.next()) {
             String fusername = rs.getString("username");
             String fuserID = rs.getString("userID");
+            String ffirstname = rs.getString("firstName");
+            String flastname = rs.getString("lastName");
             String fpassword = rs.getString("password");
             String femail = rs.getString("email");
             Boolean femailVerified = rs.getBoolean("emailVerified");
             Boolean fenabled = rs.getBoolean("enabled");
             // Create a new Users object
-            User user = new User(fuserID, femail, fusername, fpassword, femailVerified, fenabled);
+            User user = new User(fuserID, ffirstname, flastname, femail, fusername, fpassword, femailVerified, fenabled);
         
             users.add(user);
         }
@@ -114,6 +120,28 @@ public class User {
 
     public boolean updatePassword(String value, Connection c) throws SQLException{
         PreparedStatement st = c.prepareStatement("update Users set password = ? where userID=?");
+        st.setString(1, value);
+        st.setString(2, this.userID);
+        int rs = st.executeUpdate();
+        if(rs>0){
+            return true;
+        }
+        return false;
+    }
+
+    public boolean updateFirstName(String value, Connection c) throws SQLException{
+        PreparedStatement st = c.prepareStatement("update Users set firstName = ? where userID=?");
+        st.setString(1, value);
+        st.setString(2, this.userID);
+        int rs = st.executeUpdate();
+        if(rs>0){
+            return true;
+        }
+        return false;
+    }
+
+    public boolean updateLastName(String value, Connection c) throws SQLException{
+        PreparedStatement st = c.prepareStatement("update Users set lastName = ? where userID=?");
         st.setString(1, value);
         st.setString(2, this.userID);
         int rs = st.executeUpdate();
@@ -307,5 +335,21 @@ public class User {
     }
     public void setEnabled(Boolean enabled) {
         this.enabled = enabled;
+    }
+
+    public String getFirstName() {
+        return firstName;
+    }
+
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
+    }
+
+    public String getLastName() {
+        return lastName;
+    }
+
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
     }
 }

@@ -72,6 +72,14 @@ public class CustomUserAdapterFeDeratedStorage extends AbstractUserAdapterFedera
         return String.valueOf(this.user.getEmailVerified());
     }
 
+    public String getFirstName(){
+        return this.user.getFirstName();
+    }
+
+    public String getLastName(){
+        return this.user.getLastName();
+    }
+
     public void setEmailVerified(String emailVerified){
         Boolean emailVerifiedValue = Boolean.valueOf(emailVerified);
         this.user.setEmailVerified(emailVerifiedValue);
@@ -85,23 +93,20 @@ public class CustomUserAdapterFeDeratedStorage extends AbstractUserAdapterFedera
 
     @Override
     public void setEmail(String email) {
-        logger.info("Email: {}", email);
         super.setEmail(email);
         this.user.setEmail(email);
     }
 
     @Override
     public Map<String, List<String>> getAttributes() {
-
-
         // add more custome attribues for a user
         MultivaluedHashMap<String, String> attributes = new MultivaluedHashMap<>();
         attributes.add(UserModel.USERNAME, getUsername());
         attributes.add(UserModel.EMAIL, getEmail());
         attributes.add(UserModel.EMAIL_VERIFIED, getEmailVerified());
         attributes.add(UserModel.ENABLED, getEnabled());
-        // attributes.add(UserModel.ENABLED, String.valueOf(true));
-        // attributes.add(UserModel.EMAIL_VERIFIED, String.valueOf(true));
+        attributes.add(UserModel.FIRST_NAME, getFirstName());
+        attributes.add(UserModel.LAST_NAME, getLastName());
         attributes.add(USEREX_ID_ATTRIBUTE, getUserID());
 
         logger.info("getAttributes: {}",attributes.toString());
@@ -182,6 +187,14 @@ public class CustomUserAdapterFeDeratedStorage extends AbstractUserAdapterFedera
                     check = this.user.updateEmailAttribute(values.get(0), c);
                     if(check) setEmail(values.get(0));
                     break;
+                case UserModel.FIRST_NAME:
+                    check = this.user.updateFirstName(values.get(0), c);
+                    if(check) setFirstName(values.get(0));
+                    break;
+                case UserModel.LAST_NAME:
+                    check = this.user.updateLastName(values.get(0), c);
+                    if(check) setLastName(values.get(0));
+                    break;
                 // other attributes
                 default:
                     break;
@@ -230,5 +243,28 @@ public class CustomUserAdapterFeDeratedStorage extends AbstractUserAdapterFedera
     protected boolean appendDefaultRolesToRoleMappings() {
         return super.appendDefaultRolesToRoleMappings();
     }
-    
+
+    @Override
+    public void setEmailVerified(boolean verified) {
+        super.setEmailVerified(verified);
+        this.user.setEmailVerified(verified);
+    }
+
+    @Override
+    public void setEnabled(boolean enabled) {
+        super.setEnabled(enabled);
+        this.user.setEnabled(enabled);
+    }
+
+    @Override
+    public void setFirstName(String firstName) {
+        super.setFirstName(firstName);
+        this.user.setFirstName(firstName);
+    }
+
+    @Override
+    public void setLastName(String lastName) {
+        super.setLastName(lastName);
+        this.user.setLastName(lastName);
+    }
 }

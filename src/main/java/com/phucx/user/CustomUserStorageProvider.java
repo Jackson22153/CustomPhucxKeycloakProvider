@@ -230,7 +230,6 @@ public class CustomUserStorageProvider implements
             PasswordHashProvider passwordHashProvider = ksession.getProvider(PasswordHashProvider.class, providerId);
             String hashedPassword = passwordHashProvider.encode(
                 CustomUserStorageProviderConstants.UNSET_PASSWORD, DEFAULT_ITERATIONS);
-            log.info("username: {}, hashedpassword: {}", username, hashedPassword);
             User user = new User();
             user.setUserID(KeycloakModelUtils.generateId());
             user.setUsername(username);
