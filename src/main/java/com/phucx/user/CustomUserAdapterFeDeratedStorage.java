@@ -20,21 +20,31 @@ import org.slf4j.LoggerFactory;
 
 import com.phucx.DbUtil;
 import com.phucx.model.User;
+import com.phucx.repository.RoleDAO;
+import com.phucx.repository.UserDAO;
+import com.phucx.repository.UserRoleDAO;
+import com.phucx.repository.imps.RoleDAOImp;
+import com.phucx.repository.imps.UserDAOImp;
+import com.phucx.repository.imps.UserRoleDAOImp;
 import com.phucx.role.CustomRoleAdapter;
 
 public class CustomUserAdapterFeDeratedStorage extends AbstractUserAdapterFederatedStorage{
-    private final String USEREX_ID_ATTRIBUTE = "userexID";
-    private final String ENABLED_ATTRIBUTE="enabled";
-    private final String EMAIL_VERIFIED_ATTRIBUTE="emailVerified";
+    public static final String USEREX_ID_ATTRIBUTE = "userexID";
     private final String EMAIL_VERIFIED_NAME="EMAIL_VERIFIED";
 
     private Logger logger = LoggerFactory.getLogger(CustomUserAdapterFeDeratedStorage.class);
     private User user;
+    private RoleDAO roleDAO;
+    private UserDAO userDAO;
+    private UserRoleDAO userRoleDAO;
 
     public CustomUserAdapterFeDeratedStorage(KeycloakSession session, RealmModel realm,
             ComponentModel storageProviderModel, User user) {
         super(session, realm, storageProviderModel);
         this.user = user;
+        this.roleDAO = new RoleDAOImp();
+        this.userDAO = new UserDAOImp();
+        this.userRoleDAO = new UserRoleDAOImp();
     }
 
     @Override
@@ -126,7 +136,7 @@ public class CustomUserAdapterFeDeratedStorage extends AbstractUserAdapterFedera
     private Stream<RoleModel> getRoleMappingStream(){
         // logger.info("getUserMapping");
         try (Connection connection = DbUtil.getConnection(storageProviderModel)){
-            return this.user.getRoles(connection).stream()
+            return this.roleDAO.getRoles(this.user.getUserID(), connection).stream()
                 .map(role -> new CustomRoleAdapter(role, realm, session, storageProviderModel).saveRole());
         } catch (SQLException ex) {
             throw new RuntimeException(ex.getMessage());
@@ -149,10 +159,10 @@ public class CustomUserAdapterFeDeratedStorage extends AbstractUserAdapterFedera
     // update enable and email verified of User
     private void updateSingleAttribute(String name, String value){
         try (Connection connection = DbUtil.getConnection(storageProviderModel)){
-            if(this.ENABLED_ATTRIBUTE.equalsIgnoreCase(name)){
-                this.user.updateEnabledAttribute(value, connection);
+            if(UserModel.ENABLED.equalsIgnoreCase(name)){
+                this.userDAO.updateEnabled(this.user.getUserID(), value, connection);
             }else if(this.EMAIL_VERIFIED_NAME.equalsIgnoreCase(name)){
-                this.user.updateEmailVerifiedAttribute(value, connection);
+                this.userDAO.updateEmailVerified(this.user.getUserID(), value, connection);
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -164,10 +174,10 @@ public class CustomUserAdapterFeDeratedStorage extends AbstractUserAdapterFedera
     public String getFirstAttribute(String name) {
         logger.info("getFirstAttribute(name={})", name);
         
-        if(name.equalsIgnoreCase(this.ENABLED_ATTRIBUTE)){
-            name = this.ENABLED_ATTRIBUTE;           
+        if(name.equalsIgnoreCase(UserModel.ENABLED)){
+            name = UserModel.ENABLED;           
         }else if(name.equalsIgnoreCase(this.EMAIL_VERIFIED_NAME)){
-            name = this.EMAIL_VERIFIED_ATTRIBUTE;
+            name = UserModel.EMAIL_VERIFIED;
         }
         List<String> list =  getAttributes().getOrDefault(name, Collections.emptyList());
         logger.info("Name: {}, value: {}", name, !list.isEmpty()? list.get(0): null);
@@ -184,15 +194,15 @@ public class CustomUserAdapterFeDeratedStorage extends AbstractUserAdapterFedera
 
             switch (name) {
                 case UserModel.EMAIL:
-                    check = this.user.updateEmailAttribute(values.get(0), c);
+                    check = this.userDAO.updateEmail(this.user.getUserID(), values.get(0), c);
                     if(check) setEmail(values.get(0));
                     break;
                 case UserModel.FIRST_NAME:
-                    check = this.user.updateFirstName(values.get(0), c);
+                    check = this.userDAO.updateFirstname(this.user.getUserID(), values.get(0), c);
                     if(check) setFirstName(values.get(0));
                     break;
                 case UserModel.LAST_NAME:
-                    check = this.user.updateLastName(values.get(0), c);
+                    check = this.userDAO.updateLastname(this.user.getUserID(), values.get(0), c);
                     if(check) setLastName(values.get(0));
                     break;
                 // other attributes
@@ -211,7 +221,7 @@ public class CustomUserAdapterFeDeratedStorage extends AbstractUserAdapterFedera
         // super.grantRole(role);
         logger.info("grantRole({})", role.getName());
         try (Connection c = DbUtil.getConnection(this.storageProviderModel)){
-            String check =User.assignUserRole(this.user.getUsername(), role.getName(), c);
+            String check =this.userRoleDAO.assignUserRole(this.user.getUsername(), role.getName(), c);
             if(check!=null){
                 logger.info("role: {} has been assigned to {}", role.getName(), this.user.getUsername());
             }else{
@@ -227,7 +237,7 @@ public class CustomUserAdapterFeDeratedStorage extends AbstractUserAdapterFedera
     public void deleteRoleMapping(RoleModel role) {
         logger.info("deleteRoleMapping({})", role.getName());
         try (Connection c = DbUtil.getConnection(this.storageProviderModel)){
-            String check =User.deleteUserRole(this.user.getUsername(), role.getName(), c);
+            String check =this.userRoleDAO.deleteUserRole(this.user.getUsername(), role.getName(), c);
             if(check!=null){
                 logger.info("role: {} has been unassigned from {}", role.getName(), this.user.getUsername());
             }else{
