@@ -19,6 +19,7 @@ import org.keycloak.credential.hash.PasswordHashProvider;
 import org.keycloak.models.GroupModel;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
+import org.keycloak.models.RoleModel;
 import org.keycloak.models.UserCredentialModel;
 import org.keycloak.models.UserModel;
 import org.keycloak.models.credential.PasswordCredentialModel;
@@ -177,10 +178,9 @@ public class CustomUserStorageProvider implements
         
         try ( Connection c = DbUtil.getConnection(this.model)) {
             List<User> users = userDAO.getUsers(maxResults, firstResult, c);
-            List<UserModel> obUser = users.stream().map(user -> 
-                new CustomUserAdapterFeDeratedStorage(ksession, realm, model, user))
+            List<UserModel> obUser = users.stream()
+                .map(user -> new CustomUserAdapterFeDeratedStorage(ksession, realm, model, user))
                 .collect(Collectors.toList());
-            log.info("User: {}", obUser);
             return obUser.stream();
         }
         catch(SQLException ex) {
@@ -194,8 +194,82 @@ public class CustomUserStorageProvider implements
             realm.getName(), search, firstResult, maxResults);
         try (Connection c = DbUtil.getConnection(this.model)) {
             List<User> users = userDAO.getUsersLike(search, firstResult, maxResults, c);
-            List<UserModel> obUser = users.stream().map(user -> 
-                new CustomUserAdapterFeDeratedStorage(ksession, realm, model, user))
+            List<UserModel> obUser = users.stream()
+                .map(user -> new CustomUserAdapterFeDeratedStorage(ksession, realm, model, user))
+                .collect(Collectors.toList());
+            return obUser.stream();
+        } catch (SQLException ex) {
+            throw new RuntimeException("Database error:" + ex.getMessage(), ex);
+        }
+    }
+
+    private Stream<UserModel> searchForUserByUsernameAndRoleStream(RealmModel realm, String username, String role, Integer firstResult, Integer maxResults) {
+        log.info("searchForUserByUsernameAndRoleStream: realm={}, username={}, role={}, firstResul={}, maxResult={}", 
+            realm.getName(), username, role, firstResult, maxResults);
+        try (Connection c = DbUtil.getConnection(this.model)) {
+            List<User> users = userDAO.getUsersByRoleAndUsernameLike(role, username, firstResult, maxResults, c);
+            List<UserModel> obUser = users.stream()
+                .map(user -> {
+                    UserModel usermodel = new CustomUserAdapterFeDeratedStorage(ksession, realm, model, user);
+                    log.info("attributes: {}", usermodel.getAttributes());
+                    return usermodel;
+                })
+                .collect(Collectors.toList());
+            return obUser.stream();
+        } catch (SQLException ex) {
+            throw new RuntimeException("Database error:" + ex.getMessage(), ex);
+        }
+    }
+
+    private Stream<UserModel> searchForUserByEmailAndRoleStream(RealmModel realm, String email, String role, Integer firstResult, Integer maxResults) {
+        log.info("searchForUserByEmailAndRoleStream: realm={}, email={}, role={}, firstResul={}, maxResult={}", 
+            realm.getName(), email, role, firstResult, maxResults);
+        try (Connection c = DbUtil.getConnection(this.model)) {
+            List<User> users = userDAO.getUsersByRoleAndEmailLike(role, email, firstResult, maxResults, c);
+            List<UserModel> obUser = users.stream()
+                .map(user -> {
+                    UserModel userModel = new CustomUserAdapterFeDeratedStorage(ksession, realm, model, user);
+                    // userModel.getAttributes();
+                    return userModel;
+                })
+                .collect(Collectors.toList());
+
+            return obUser.stream();
+        } catch (SQLException ex) {
+            throw new RuntimeException("Database error:" + ex.getMessage(), ex);
+        }
+    }
+
+    private Stream<UserModel> searchForUserByFirstNameAndRoleStream(RealmModel realm, String firstName, String role, Integer firstResult, Integer maxResults) {
+        log.info("searchForUserByFirstNameAndRoleStream: realm={}, firstName={}, role={}, firstResul={}, maxResult={}", 
+            realm.getName(), firstName, role, firstResult, maxResults);
+        try (Connection c = DbUtil.getConnection(this.model)) {
+            List<User> users = userDAO.getUsersByRoleAndFirstNameLike(role, firstName, firstResult, maxResults, c);
+            List<UserModel> obUser = users.stream()
+                .map(user -> {
+                    UserModel userModel = new CustomUserAdapterFeDeratedStorage(ksession, realm, model, user);
+                    // userModel.getAttributes();
+                    return userModel;
+                })
+                .collect(Collectors.toList());
+
+            return obUser.stream();
+        } catch (SQLException ex) {
+            throw new RuntimeException("Database error:" + ex.getMessage(), ex);
+        }
+    }
+
+    private Stream<UserModel> searchForUserByLastNameAndRoleStream(RealmModel realm, String lastName, String role, Integer firstResult, Integer maxResults) {
+        log.info("searchForUserByLastNameAndRoleStream: realm={}, lastName={}, role={}, firstResul={}, maxResult={}", 
+            realm.getName(), lastName, role, firstResult, maxResults);
+        try (Connection c = DbUtil.getConnection(this.model)) {
+            List<User> users = userDAO.getUsersByRoleAndLastNameLike(role, lastName, firstResult, maxResults, c);
+            List<UserModel> obUser = users.stream()
+                .map(user -> {
+                    UserModel userModel = new CustomUserAdapterFeDeratedStorage(ksession, realm, model, user);
+                    // userModel.getAttributes();
+                    return userModel;
+                })
                 .collect(Collectors.toList());
 
             return obUser.stream();
@@ -210,11 +284,27 @@ public class CustomUserStorageProvider implements
             realm.getName(), params, firstResult, maxResults);
         String search =  getSearchParameter(params);
         Boolean exact = getExactParameter(params);
-
-
-        if(params.get(CustomUserAdapterFeDeratedStorage.USEREX_ID_ATTRIBUTE)!=null){
-            String userExId = params.get(CustomUserAdapterFeDeratedStorage.USEREX_ID_ATTRIBUTE);
-            return this.getUserByUserExIdStream(realm, userExId);
+        String userExternalID = getUserExIdParameter(params);
+        String email = getEmailParameter(params);
+        String firstName = getFirstNameParameter(params);
+        String lastName = getLastNameParameter(params);
+        String username = getUsernameParameter(params);
+        String role = getRoleParameter(params);
+        
+        if(role!=null){
+            if(username!=null){
+                return this.searchForUserByUsernameAndRoleStream(realm, username, role, firstResult, maxResults);
+            }else if(firstName!=null){
+                return this.searchForUserByFirstNameAndRoleStream(realm, firstName, role, firstResult, maxResults);
+            }else if(lastName!=null){
+                return this.searchForUserByLastNameAndRoleStream(realm, lastName, role, firstResult, maxResults);
+            }else if(email!=null){
+                return this.searchForUserByEmailAndRoleStream(realm, email, role, firstResult, maxResults);
+            }else {
+                return this.searchForUserByUsernameAndRoleStream(realm, search, role, firstResult, maxResults);
+            }
+        }else if(userExternalID!=null){
+            return this.getUserByUserExIdStream(realm, userExternalID);
         }else if(exact){  
             UserModel user  = getUserByUsername(realm, search);
             return Stream.of(user);
@@ -222,28 +312,42 @@ public class CustomUserStorageProvider implements
             return searchForUserStream(realm, search, firstResult, maxResults);
         }
     }
-
+    // get parameters
     private Boolean getExactParameter(Map<String, String> params){
         return params.get(UserModel.EXACT)==null?
             false:Boolean.valueOf(params.get(UserModel.EXACT));
     }
+    private String getUsernameParameter(Map<String, String> params){
+        return params.get(UserModel.USERNAME);
+    }
     private String getSearchParameter(Map<String, String> params){
-        // String search =  null;
-        // if(params.get(UserModel.SEARCH)!=null){
-        //     search = params.get(UserModel.SEARCH);
-        // }else if(params.get(UserModel.USERNAME)!=null){
-        //     search = params.get(UserModel.USERNAME);
-        // }
         return params.getOrDefault(UserModel.USERNAME, params.get(UserModel.SEARCH));
     }
+    private String getUserExIdParameter(Map<String, String> params){
+        return params.get(CustomUserAdapterFeDeratedStorage.USEREX_ID_ATTRIBUTE);
+    }
+    private String getRoleParameter(Map<String, String> params){
+        return params.get("role");
+    }
+    private String getFirstNameParameter(Map<String, String> params){
+        return params.get(UserModel.FIRST_NAME);
+    }
+    private String getLastNameParameter(Map<String, String> params){
+        return params.get(UserModel.LAST_NAME);
+    }
+    private String getEmailParameter(Map<String, String> params){
+        return params.get(UserModel.EMAIL);
+    }
+
+    
 
     @Override
     public Stream<UserModel> searchForUserByUserAttributeStream(RealmModel realm, String attrName, String attrValue) {
         log.info("[I141] searchForUserByUserAttributeStream: realm={}, attribute={}, attributeValue={}", realm.getName(), attrName, attrValue);
         try (Connection c = DbUtil.getConnection(this.model)){
             List<User> users = userDAO.getUsersByAttributeLike(attrName, attrValue, c);
-            List<UserModel> obUser = users.stream().map(user -> 
-                new CustomUserAdapterFeDeratedStorage(ksession, realm, model, user))
+            List<UserModel> obUser = users.stream()
+                .map(user ->  new CustomUserAdapterFeDeratedStorage(ksession, realm, model, user))
                 .collect(Collectors.toList());
             return obUser.stream();
         } catch (SQLException e) {
@@ -342,6 +446,23 @@ public class CustomUserStorageProvider implements
             log.info("hashedPassword: {}", hashedPassword);
             boolean check = userDAO.updatePassword(fetchedUser.getUserID(), hashedPassword, c);
             return check;
+        } catch (SQLException e) {
+            throw new RuntimeException(e.getMessage());
+        }
+    }
+
+    @Override
+    public Stream<UserModel> getRoleMembersStream(RealmModel realm, RoleModel role, Integer firstResult,
+            Integer maxResults) {
+        log.info("getRoleMembersStream(realm={}, role={}, firstResult={}, maxResults={})", 
+            realm.getName(), role.getName(), firstResult, maxResults);
+        try (Connection c = DbUtil.getConnection(this.model)){
+            return this.userDAO.getUsersByRole(role.getName(), firstResult, maxResults, c).stream()
+                .map(user -> {
+                    UserModel userModel = new CustomUserAdapterFeDeratedStorage(ksession, realm, model, user);
+                    // userModel.getAttributes();
+                    return userModel;
+                });
         } catch (SQLException e) {
             throw new RuntimeException(e.getMessage());
         }

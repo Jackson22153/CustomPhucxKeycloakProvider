@@ -24,7 +24,7 @@ public class RoleDAOImp implements RoleDAO{
         return roles;
     }
 
-    private static List<Role> convertRoles(ResultSet rs) throws SQLException{
+    private List<Role> convertRoles(ResultSet rs) throws SQLException{
         List<Role> roles = new ArrayList<>();
         while (rs.next()) {
             Integer roleID = rs.getInt("roleID");

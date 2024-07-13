@@ -15,6 +15,13 @@ public interface UserDAO {
     public List<User> getUsersByAttributeLike(String attribute, String attributeValue, Connection c) throws SQLException;
     public List<User> getUsers(Integer firstResult, Integer maxResults, Connection c) throws SQLException;
     public List<User> getUsersLike(String username, Integer firstResult, Integer maxResults, Connection c) throws SQLException;
+    public List<User> getUsersByRole(String roleName, Integer firstResult, Integer maxResults, Connection c) throws SQLException;
+
+    public List<User> getUsersByRoleAndUsernameLike(String roleName, String username, Integer firstResult, Integer maxResults, Connection c) throws SQLException;
+    public List<User> getUsersByRoleAndFirstNameLike(String roleName, String firstName, Integer firstResult, Integer maxResults, Connection c) throws SQLException;
+    public List<User> getUsersByRoleAndLastNameLike(String roleName, String lastName, Integer firstResult, Integer maxResults, Connection c) throws SQLException;
+    public List<User> getUsersByRoleAndEmailLike(String roleName, String email, Integer firstResult, Integer maxResults, Connection c) throws SQLException;
+
     public User getUserByUsername(String username, Connection c) throws SQLException;
     public User getUserByEmail(String email, Connection c) throws SQLException;
     public User getUserByID(String userID, Connection c) throws SQLException;

@@ -30,6 +30,7 @@ import com.phucx.role.CustomRoleAdapter;
 
 public class CustomUserAdapterFeDeratedStorage extends AbstractUserAdapterFederatedStorage{
     public static final String USEREX_ID_ATTRIBUTE = "userexID";
+    public static final String ROLE = "role";
     private final String EMAIL_VERIFIED_NAME="EMAIL_VERIFIED";
 
     private Logger logger = LoggerFactory.getLogger(CustomUserAdapterFeDeratedStorage.class);

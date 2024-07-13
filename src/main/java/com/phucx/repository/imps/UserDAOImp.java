@@ -78,7 +78,7 @@ public class UserDAOImp implements UserDAO{
     @Override
     public List<User> getUsers(Integer firstResult, Integer maxResults, Connection c) throws SQLException {
         PreparedStatement st = c.prepareStatement("select * from users order by username offset ? rows fetch next ? rows only");
-        st.setInt(1, firstResult);
+        st.setInt(1, firstResult*maxResults);
         st.setInt(2, maxResults);
         ResultSet rs = st.executeQuery();
         List<User> users = convertUser(rs);
@@ -90,7 +90,7 @@ public class UserDAOImp implements UserDAO{
         String search = "%"+username+"%";
         PreparedStatement st = c.prepareStatement("select * from users where username like ? order by username offset ? rows fetch next ? rows only");
         st.setString(1, search);
-        st.setInt(2, firstResult);
+        st.setInt(2, firstResult*maxResults);
         st.setInt(3, maxResults);
         ResultSet rs = st.executeQuery();
         List<User> users = convertUser(rs);
@@ -223,7 +223,7 @@ public class UserDAOImp implements UserDAO{
         return false;
     }
 
-    private static List<User> convertUser(ResultSet rs) throws SQLException{
+    private List<User> convertUser(ResultSet rs) throws SQLException{
         List<User> users = new ArrayList<>();
         while (rs.next()) {
             String fusername = rs.getString("username");
@@ -239,6 +239,95 @@ public class UserDAOImp implements UserDAO{
         
             users.add(user);
         }
+        return users;
+    }
+
+    @Override
+    public List<User> getUsersByRole(String roleName, Integer firstResult, Integer maxResults, Connection c)
+            throws SQLException {
+        PreparedStatement st = c.prepareStatement("""
+            SELECT * \
+            FROM Users u JOIN UserRoles ur ON u.userID=ur.userID \
+            WHERE ur.rolename=? \
+            ORDER BY u.username OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
+                """);
+        st.setString(1, roleName);
+        st.setInt(2, firstResult*maxResults);
+        st.setInt(3, maxResults);
+        ResultSet rs = st.executeQuery();
+        List<User> users = this.convertUser(rs);
+        return users;
+    }
+
+    @Override
+    public List<User> getUsersByRoleAndUsernameLike(String roleName, String username, Integer firstResult,
+            Integer maxResults, Connection c) throws SQLException {
+        PreparedStatement st = c.prepareStatement("""
+            SELECT * \
+            FROM Users u JOIN UserRoles ur ON u.userID=ur.userID \
+            WHERE ur.rolename=? AND u.username LIKE ? \
+            ORDER BY u.username OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
+                """);
+        st.setString(1, roleName);
+        st.setString(2, "%"+username+"%");
+        st.setInt(3, firstResult*maxResults);
+        st.setInt(4, maxResults);
+        ResultSet rs = st.executeQuery();
+        List<User> users = this.convertUser(rs);
+        return users;
+    }
+
+    @Override
+    public List<User> getUsersByRoleAndFirstNameLike(String roleName, String firstName, Integer firstResult,
+            Integer maxResults, Connection c) throws SQLException {
+        PreparedStatement st = c.prepareStatement("""
+            SELECT * \
+            FROM Users u JOIN UserRoles ur ON u.userID=ur.userID \
+            WHERE ur.rolename=? AND u.firstName LIKE ? \
+            ORDER BY u.firstName OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
+                """);
+        st.setString(1, roleName);
+        st.setString(2, "%"+firstName+"%");
+        st.setInt(3, firstResult*maxResults);
+        st.setInt(4, maxResults);
+        ResultSet rs = st.executeQuery();
+        List<User> users = this.convertUser(rs);
+        return users;
+    }
+
+    @Override
+    public List<User> getUsersByRoleAndLastNameLike(String roleName, String lastName, Integer firstResult,
+            Integer maxResults, Connection c) throws SQLException {
+        PreparedStatement st = c.prepareStatement("""
+            SELECT * \
+            FROM Users u JOIN UserRoles ur ON u.userID=ur.userID \
+            WHERE ur.rolename=? AND u.lastName LIKE ? \
+            ORDER BY u.lastName OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
+                """);
+        st.setString(1, roleName);
+        st.setString(2, "%"+lastName+"%");
+        st.setInt(3, firstResult*maxResults);
+        st.setInt(4, maxResults);
+        ResultSet rs = st.executeQuery();
+        List<User> users = this.convertUser(rs);
+        return users;
+    }
+
+    @Override
+    public List<User> getUsersByRoleAndEmailLike(String roleName, String email, Integer firstResult, Integer maxResults,
+            Connection c) throws SQLException {
+        PreparedStatement st = c.prepareStatement("""
+            SELECT * \
+            FROM Users u JOIN UserRoles ur ON u.userID=ur.userID \
+            WHERE ur.rolename=? AND u.email LIKE ? \
+            ORDER BY u.email OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
+                """);
+        st.setString(1, roleName);
+        st.setString(2, "%"+email+"%");
+        st.setInt(3, firstResult*maxResults);
+        st.setInt(4, maxResults);
+        ResultSet rs = st.executeQuery();
+        List<User> users = this.convertUser(rs);
         return users;
     }
     
