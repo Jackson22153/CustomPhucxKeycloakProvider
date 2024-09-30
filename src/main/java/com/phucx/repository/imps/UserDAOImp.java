@@ -77,9 +77,13 @@ public class UserDAOImp implements UserDAO{
 
     @Override
     public List<User> getUsers(Integer firstResult, Integer maxResults, Connection c) throws SQLException {
-        PreparedStatement st = c.prepareStatement("select * from users order by username offset ? rows fetch next ? rows only");
-        st.setInt(1, firstResult*maxResults);
-        st.setInt(2, maxResults);
+        PreparedStatement st = c.prepareStatement("""
+            SELECT * FROM Users \
+            ORDER BY username \
+            LIMIT ? OFFSET ?
+                """);
+        st.setInt(1, maxResults);
+        st.setInt(2, firstResult*maxResults);
         ResultSet rs = st.executeQuery();
         List<User> users = convertUser(rs);
         return users;
@@ -88,10 +92,17 @@ public class UserDAOImp implements UserDAO{
     @Override
     public List<User> getUsersLike(String username, Integer firstResult, Integer maxResults, Connection c) throws SQLException {
         String search = "%"+username+"%";
-        PreparedStatement st = c.prepareStatement("select * from users where username like ? order by username offset ? rows fetch next ? rows only");
+        PreparedStatement st = c.prepareStatement("""
+            select * \
+            from users \
+            where username like ? \
+            order by username \
+            limit ? offset ?
+            """);
+        
         st.setString(1, search);
-        st.setInt(2, firstResult*maxResults);
-        st.setInt(3, maxResults);
+        st.setInt(2, maxResults);
+        st.setInt(3, firstResult*maxResults);
         ResultSet rs = st.executeQuery();
         List<User> users = convertUser(rs);
         return users;
@@ -110,7 +121,7 @@ public class UserDAOImp implements UserDAO{
 
     @Override
     public User getUserByID(String userID, Connection c) throws SQLException {
-        PreparedStatement ps = c.prepareStatement("SELECT * FROM Users where userID=?");
+        PreparedStatement ps = c.prepareStatement("SELECT * FROM Users WHERE userID=?");
         ps.setString(1, userID);
         ps.executeQuery();
         ps.execute();
@@ -124,7 +135,7 @@ public class UserDAOImp implements UserDAO{
     @Override
     public Integer getCountUsers(Connection c) throws SQLException {
         Statement st = c.createStatement();
-        ResultSet rs = st.executeQuery("select count(*) from Users");
+        ResultSet rs = st.executeQuery("SELECT count(*) from Users");
         rs.next();
         return rs.getInt(1);
     }
@@ -132,7 +143,7 @@ public class UserDAOImp implements UserDAO{
     @Override
     public User saveUser(User user, Connection c) throws SQLException {
         PreparedStatement st = c.prepareStatement(
-            "insert into Users(userID, username, password, email, emailVerified, enabled) values(?,?,?,?,?,?)");
+            "INSERT INTO Users(userID, username, password, email, emailVerified, enabled) values(?,?,?,?,?,?)");
         st.setString(1, user.getUserID());
         st.setString(2, user.getUsername());
         st.setString(3, user.getPassword());
@@ -146,7 +157,7 @@ public class UserDAOImp implements UserDAO{
 
     @Override
     public Boolean deleteUser(String userID, Connection c) throws SQLException {
-        PreparedStatement st = c.prepareStatement("exec deleteUser ?");
+        PreparedStatement st = c.prepareStatement("call deleteUser(?)");
         st.setString(1, userID);
         return !st.execute();
     }
@@ -164,9 +175,9 @@ public class UserDAOImp implements UserDAO{
     }
 
     @Override
-    public Boolean updateEmailVerified(String userID, String emailVerified, Connection c) throws SQLException {
+    public Boolean updateEmailVerified(String userID, Boolean emailVerified, Connection c) throws SQLException {
         PreparedStatement st = c.prepareStatement("update Users set emailVerified = ? where userID=?");
-        st.setString(1, emailVerified);
+        st.setBoolean(1, emailVerified);
         st.setString(2, userID);
         int rs = st.executeUpdate();
         if(rs>0){
@@ -176,9 +187,9 @@ public class UserDAOImp implements UserDAO{
     }
 
     @Override
-    public Boolean updateEnabled(String userID, String enabled, Connection c) throws SQLException {
+    public Boolean updateEnabled(String userID, Boolean enabled, Connection c) throws SQLException {
         PreparedStatement st = c.prepareStatement("update Users set enabled = ? where userID=?");
-        st.setString(1, enabled);
+        st.setBoolean(1, enabled);
         st.setString(2, userID);
         int rs = st.executeUpdate();
         if(rs>0){
@@ -249,11 +260,12 @@ public class UserDAOImp implements UserDAO{
             SELECT * \
             FROM Users u JOIN UserRoles ur ON u.userID=ur.userID \
             WHERE ur.rolename=? \
-            ORDER BY u.username OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
-                """);
+            ORDER BY u.username \
+            LIMIT ? OFFSET ?
+            """);
         st.setString(1, roleName);
-        st.setInt(2, firstResult*maxResults);
-        st.setInt(3, maxResults);
+        st.setInt(2, maxResults);
+        st.setInt(3, firstResult*maxResults);
         ResultSet rs = st.executeQuery();
         List<User> users = this.convertUser(rs);
         return users;
@@ -266,12 +278,13 @@ public class UserDAOImp implements UserDAO{
             SELECT * \
             FROM Users u JOIN UserRoles ur ON u.userID=ur.userID \
             WHERE ur.rolename=? AND u.username LIKE ? \
-            ORDER BY u.username OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
+            ORDER BY u.username \
+            LIMIT ? OFFSET ? 
                 """);
         st.setString(1, roleName);
         st.setString(2, "%"+username+"%");
-        st.setInt(3, firstResult*maxResults);
-        st.setInt(4, maxResults);
+        st.setInt(3, maxResults);
+        st.setInt(4, firstResult*maxResults);
         ResultSet rs = st.executeQuery();
         List<User> users = this.convertUser(rs);
         return users;
@@ -284,12 +297,13 @@ public class UserDAOImp implements UserDAO{
             SELECT * \
             FROM Users u JOIN UserRoles ur ON u.userID=ur.userID \
             WHERE ur.rolename=? AND u.firstName LIKE ? \
-            ORDER BY u.firstName OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
-                """);
+            ORDER BY u.firstName \
+            LIMIT ? OFFSET ?
+            """);
         st.setString(1, roleName);
         st.setString(2, "%"+firstName+"%");
-        st.setInt(3, firstResult*maxResults);
-        st.setInt(4, maxResults);
+        st.setInt(3, maxResults);
+        st.setInt(4, firstResult*maxResults);
         ResultSet rs = st.executeQuery();
         List<User> users = this.convertUser(rs);
         return users;
@@ -302,12 +316,13 @@ public class UserDAOImp implements UserDAO{
             SELECT * \
             FROM Users u JOIN UserRoles ur ON u.userID=ur.userID \
             WHERE ur.rolename=? AND u.lastName LIKE ? \
-            ORDER BY u.lastName OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
-                """);
+            ORDER BY u.lastName \
+            LIMIT ? OFFSET ? 
+            """);
         st.setString(1, roleName);
         st.setString(2, "%"+lastName+"%");
-        st.setInt(3, firstResult*maxResults);
-        st.setInt(4, maxResults);
+        st.setInt(3, maxResults);
+        st.setInt(4, firstResult*maxResults);
         ResultSet rs = st.executeQuery();
         List<User> users = this.convertUser(rs);
         return users;
@@ -320,12 +335,13 @@ public class UserDAOImp implements UserDAO{
             SELECT * \
             FROM Users u JOIN UserRoles ur ON u.userID=ur.userID \
             WHERE ur.rolename=? AND u.email LIKE ? \
-            ORDER BY u.email OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
-                """);
+            ORDER BY u.email \
+            LIMIT ? OFFSET ?
+            """);
         st.setString(1, roleName);
         st.setString(2, "%"+email+"%");
-        st.setInt(3, firstResult*maxResults);
-        st.setInt(4, maxResults);
+        st.setInt(3, maxResults);
+        st.setInt(4, firstResult*maxResults);
         ResultSet rs = st.executeQuery();
         List<User> users = this.convertUser(rs);
         return users;

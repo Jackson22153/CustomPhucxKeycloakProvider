@@ -15,9 +15,11 @@ public class RoleDAOImp implements RoleDAO{
     @Override
     public List<Role> getRoles(String userID, Connection c) throws SQLException {
         PreparedStatement st = c.prepareStatement(
-            "select r.*\n"+
-            "from Users u join (UserRole ur join Roles r on ur.roleID=r.roleID) on u.userID=ur.userID\n"+
-            "where u.userID=?");
+            """
+                SELECT r.* \
+                FROM Users u Join (UserRole ur join Roles r on ur.roleID=r.roleID) on u.userID=ur.userID \
+                WHERE u.userID=?     
+            """);
         st.setString(1, userID);
         ResultSet rs = st.executeQuery();
         List<Role> roles = convertRoles(rs);

@@ -28,6 +28,7 @@ public class CustomEventListenerProvider implements EventListenerProvider{
 	}
 
 	@Override
+    // add customer as a default role after client registers
 	public void onEvent(Event event) {
 		logger.info("onEvent({})", event.getType().name());
         if(event.getType().equals(EventType.REGISTER)){

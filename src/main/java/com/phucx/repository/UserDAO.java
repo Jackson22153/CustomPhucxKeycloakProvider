@@ -30,8 +30,8 @@ public interface UserDAO {
     public User saveUser(User user, Connection c) throws SQLException;
     public Boolean deleteUser(String userID, Connection c) throws SQLException;
     public Boolean updateEmail(String userID, String email, Connection c) throws SQLException;
-    public Boolean updateEmailVerified(String userID, String emailVerified, Connection c) throws SQLException;
-    public Boolean updateEnabled(String userID, String enabled, Connection c) throws SQLException;
+    public Boolean updateEmailVerified(String userID, Boolean emailVerified, Connection c) throws SQLException;
+    public Boolean updateEnabled(String userID, Boolean enabled, Connection c) throws SQLException;
     public Boolean updatePassword(String userID, String password, Connection c) throws SQLException;
     public Boolean updateFirstname(String userID, String firstname, Connection c) throws SQLException;
     public Boolean updateLastname(String userID, String lastname, Connection c) throws SQLException;

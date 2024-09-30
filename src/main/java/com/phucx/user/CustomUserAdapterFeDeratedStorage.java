@@ -159,11 +159,12 @@ public class CustomUserAdapterFeDeratedStorage extends AbstractUserAdapterFedera
 
     // update enable and email verified of User
     private void updateSingleAttribute(String name, String value){
+        logger.info("updateSingleAttribute(name={}, value={})", name, value);
         try (Connection connection = DbUtil.getConnection(storageProviderModel)){
             if(UserModel.ENABLED.equalsIgnoreCase(name)){
-                this.userDAO.updateEnabled(this.user.getUserID(), value, connection);
+                this.userDAO.updateEnabled(this.user.getUserID(), Boolean.valueOf(value), connection);
             }else if(this.EMAIL_VERIFIED_NAME.equalsIgnoreCase(name)){
-                this.userDAO.updateEmailVerified(this.user.getUserID(), value, connection);
+                this.userDAO.updateEmailVerified(this.user.getUserID(), Boolean.valueOf(value), connection);
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -220,10 +221,10 @@ public class CustomUserAdapterFeDeratedStorage extends AbstractUserAdapterFedera
     @Override
     public void grantRole(RoleModel role) {
         // super.grantRole(role);
-        logger.info("grantRole({})", role.getName());
+        logger.info("grantRole(username={}, role={})", this.user.getUsername(), role.getName());
         try (Connection c = DbUtil.getConnection(this.storageProviderModel)){
-            String check =this.userRoleDAO.assignUserRole(this.user.getUsername(), role.getName(), c);
-            if(check!=null){
+            Boolean check =this.userRoleDAO.assignUserRole(this.user.getUsername(), role.getName(), c);
+            if(check){
                 logger.info("role: {} has been assigned to {}", role.getName(), this.user.getUsername());
             }else{
                 logger.info("role: {} can not be assigned to {}", role.getName(), this.user.getUsername());
@@ -238,8 +239,8 @@ public class CustomUserAdapterFeDeratedStorage extends AbstractUserAdapterFedera
     public void deleteRoleMapping(RoleModel role) {
         logger.info("deleteRoleMapping({})", role.getName());
         try (Connection c = DbUtil.getConnection(this.storageProviderModel)){
-            String check =this.userRoleDAO.deleteUserRole(this.user.getUsername(), role.getName(), c);
-            if(check!=null){
+            Boolean check =this.userRoleDAO.deleteUserRole(this.user.getUsername(), role.getName(), c);
+            if(check){
                 logger.info("role: {} has been unassigned from {}", role.getName(), this.user.getUsername());
             }else{
                 logger.info("role: {} can not be unassigned from {}", role.getName(), this.user.getUsername());

@@ -378,7 +378,7 @@ public class CustomUserStorageProvider implements
             user.setUserID(KeycloakModelUtils.generateId());
             user.setUsername(username);
             user.setPassword(hashedPassword);
-            user.setEmailVerified(true);
+            user.setEmailVerified(false);
             user.setEnabled(true);
             synchronized(user){
                 user = userDAO.saveUser(user, connection);
